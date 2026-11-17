@@ -9,21 +9,11 @@ if %errorlevel% neq 0 (
     exit /b
 )
 
-set "SCRIPT=%~dp0Clear-Traces.ps1"
-if not exist "%SCRIPT%" (
-    echo Clear-Traces.ps1 not found next to this installer.
-    pause
-    exit /b 1
-)
-
-schtasks /Create /TN "TraceCleaner" /SC ONSTART /RU SYSTEM /RL HIGHEST /F /TR "powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File \"%SCRIPT%\" -IncludeTemp"
-
-if %errorlevel% equ 0 (
-    echo.
-    echo Installed. The cleaner runs at every startup, before Explorer loads.
-    echo To clean once now:  powershell -ExecutionPolicy Bypass -File "%SCRIPT%" -RestartExplorer
-    echo To remove:          uninstall.bat
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0register.ps1"
+if %errorlevel% neq 0 (
+    echo Failed to register the task.
 ) else (
-    echo Failed to create the scheduled task.
+    echo To clean once now:  powershell -ExecutionPolicy Bypass -File "%~dp0Clear-Traces.ps1" -IncludeTemp -RestartExplorer
+    echo To remove:          uninstall.bat
 )
 pause

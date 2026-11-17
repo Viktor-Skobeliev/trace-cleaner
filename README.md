@@ -50,11 +50,15 @@ Clean once now, including the locked thumbnail cache (restarts Explorer):
 powershell -ExecutionPolicy Bypass -File .\Clear-Traces.ps1 -RestartExplorer
 ```
 
-Install the startup task (auto-elevates):
+Install the startup task (auto-elevates, then runs `register.ps1`):
 
 ```
 install.bat
 ```
+
+The task runs as SYSTEM at startup with `-IncludeTemp`, so it also removes temp files
+older than 7 days. A SYSTEM task can only be inspected or removed from an elevated
+prompt.
 
 Remove it:
 
