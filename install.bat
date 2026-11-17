@@ -16,7 +16,7 @@ if not exist "%SCRIPT%" (
     exit /b 1
 )
 
-schtasks /Create /TN "TraceCleaner" /SC ONSTART /RU SYSTEM /RL HIGHEST /F /TR "powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File \"%SCRIPT%\""
+schtasks /Create /TN "TraceCleaner" /SC ONSTART /RU SYSTEM /RL HIGHEST /F /TR "powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File \"%SCRIPT%\" -IncludeTemp"
 
 if %errorlevel% equ 0 (
     echo.

@@ -26,7 +26,12 @@
     List what would be deleted and delete nothing.
 
 .PARAMETER IncludeTemp
-    Also remove temp files older than 1 day (excluding active "claude" work folders).
+    Also remove temp files older than -TempOlderThanDays (default 7), in every user's
+    Temp and in C:\Windows\Temp, skipping anything under a "claude" folder so Claude
+    Desktop sessions are never touched.
+
+.PARAMETER TempOlderThanDays
+    Age threshold in days for -IncludeTemp. Default 7.
 
 .PARAMETER RestartExplorer
     Interactive only: stop Explorer, clear the thumbnail cache, start Explorer again,
@@ -39,6 +44,7 @@
 param(
     [switch]$DryRun,
     [switch]$IncludeTemp,
+    [int]$TempOlderThanDays = 7,
     [switch]$RestartExplorer
 )
 
@@ -86,6 +92,25 @@ function Clear-Trace {
     }
 }
 
+function Clear-TempOld {
+    # Remove files older than $TempOlderThanDays under $Root; never a "claude" folder.
+    param([string]$Root)
+    if (-not (Test-Path $Root)) { return }
+    $cut = (Get-Date).AddDays(-$TempOlderThanDays)
+    $old = Get-ChildItem -Path $Root -File -Recurse -Force -ErrorAction SilentlyContinue |
+        Where-Object { $_.LastWriteTime -lt $cut -and $_.FullName -notmatch '\\claude\\' }
+    foreach ($f in $old) {
+        if ($DryRun) { Write-Log "DRY   [temp>$($TempOlderThanDays)d] $($f.FullName)"; $script:Deleted++; continue }
+        try {
+            Remove-Item -LiteralPath $f.FullName -Force -ErrorAction Stop
+            $script:Deleted++
+        } catch {
+            if ($_.Exception.Message -match 'being used|another process|access to the path') { $script:Locked++ }
+            else { $script:Errors++ }
+        }
+    }
+}
+
 function Test-Admin {
     $id = [Security.Principal.WindowsIdentity]::GetCurrent()
     (New-Object Security.Principal.WindowsPrincipal($id)).IsInRole(
@@ -121,15 +146,13 @@ foreach ($prof in Get-ProfileDirs) {
     Clear-Trace (Join-Path $recent 'CustomDestinations\*')    'jump lists (custom)'
 
     if ($IncludeTemp) {
-        $temp = Join-Path $prof 'AppData\Local\Temp'
-        $old  = Get-ChildItem -Path $temp -File -Recurse -Force -ErrorAction SilentlyContinue |
-            Where-Object { $_.LastWriteTime -lt (Get-Date).AddDays(-1) -and $_.FullName -notmatch '\\claude\\' }
-        foreach ($f in $old) {
-            if ($DryRun) { Write-Log "DRY   [temp] $($f.FullName)"; $script:Deleted++; continue }
-            try { Remove-Item -LiteralPath $f.FullName -Force -ErrorAction Stop; $script:Deleted++ }
-            catch { $script:Locked++ }
-        }
+        Clear-TempOld (Join-Path $prof 'AppData\Local\Temp')
     }
+}
+
+# Machine-wide temp, needs admin.
+if ($IncludeTemp -and (Test-Admin)) {
+    Clear-TempOld 'C:\Windows\Temp'
 }
 
 # Prefetch is machine-wide; needs admin. Skipped cleanly otherwise.

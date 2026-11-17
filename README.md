@@ -26,9 +26,11 @@ files. Run by hand, it cleans the current user (and every profile if elevated).
   device drivers, so it is left alone.
 - **Saved Wi-Fi passwords**: these are your own stored networks, readable only by an
   administrator already on the PC. Nothing to clean.
-- **`%TEMP%`**: off by default. `-IncludeTemp` enables it, and then only files older
-  than one day are removed, skipping anything under a `claude` folder so active work is
-  safe.
+- **`%TEMP%`**: when enabled with `-IncludeTemp`, only files older than
+  `-TempOlderThanDays` (default 7) are removed, in every user's Temp and in
+  `C:\Windows\Temp`, skipping anything under a `claude` folder so Claude Desktop
+  sessions are never touched. The startup task installed by `install.bat` runs with
+  `-IncludeTemp`, so temp older than 7 days is cleaned automatically at boot.
 
 This is privacy hygiene, not anti-forensics: caches are regenerated as you use Windows,
 and manual cleanup cannot remove every system trace. For real protection of a lost or
